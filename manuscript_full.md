@@ -136,7 +136,7 @@ The authors thank the teams responsible for developing and maintaining MIMIC-IV,
 
 ## Data availability statement
 
-MIMIC-IV v3.1 and eICU-CRD v2.0 are available through PhysioNet to credentialed users who complete the required training and data-use procedures. The analysis code is held with the manuscript files. A public repository link has not yet been created and should replace this sentence before submission. Patient-level records are not included.
+MIMIC-IV v3.1 and eICU-CRD v2.0 are available through PhysioNet to credentialed users who complete the required training and data-use procedures. The analysis code is available at https://github.com/shupengqin/ast-alt-sepsis-mortality. Patient-level records are not included.
 
 ## Funding
 
