@@ -6,7 +6,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 
-OUT = Path(r"F:\CKB数据库\analysis\deritis_paper\figures")
+OUT = Path(__file__).resolve().parent / "figures"
 OUT.mkdir(parents=True, exist_ok=True)
 
 Q_COLORS = {
@@ -16,7 +16,7 @@ Q_COLORS = {
     "Q4": "#8E5A8A",
 }
 MIMIC_C = "#3B6EA5"
-EICU_C = "#E07A3D"
+EICU_C = "#1B4F72"
 
 mpl.rcParams.update({
     "font.family": "sans-serif",
@@ -40,11 +40,27 @@ mpl.rcParams.update({
 
 
 def save_pub(fig, stem):
-    fig.savefig(OUT / f"{stem}.pdf", bbox_inches="tight")
-    fig.savefig(OUT / f"{stem}.svg", bbox_inches="tight")
-    fig.savefig(OUT / f"{stem}.tiff", dpi=600, bbox_inches="tight")
-    fig.savefig(OUT / f"{stem}.png", dpi=300, bbox_inches="tight")
+    common = dict(bbox_inches="tight", facecolor="white", transparent=False)
+    fig.savefig(OUT / f"{stem}.pdf", **common)
+    fig.savefig(OUT / f"{stem}.svg", **common)
+    fig.savefig(OUT / f"{stem}.tiff", dpi=600, **common)
+    png = OUT / f"{stem}.png"
+    fig.savefig(png, dpi=300, **common)
     plt.close(fig)
+    try:
+        from PIL import Image
+        for path, dpi in ((png, 300), (OUT / f"{stem}.tiff", 600)):
+            image = Image.open(path)
+            if image.mode == "RGB":
+                continue
+            canvas = Image.new("RGB", image.size, (255, 255, 255))
+            if image.mode == "RGBA":
+                canvas.paste(image, mask=image.split()[-1])
+            else:
+                canvas.paste(image.convert("RGB"))
+            canvas.save(path, dpi=(dpi, dpi))
+    except Exception:
+        pass
 
 
 def panel_letter(ax, letter):
@@ -60,8 +76,11 @@ def forest(ax, labels, estimates, lows, highs, colors, title, xlabel):
     y = np.arange(len(labels))[::-1]
     ax.axvline(1, color="#888888", lw=0.6, ls="--")
     for i, (est, lo, hi, col) in enumerate(zip(estimates, lows, highs, colors)):
-        ax.plot([lo, hi], [y[i], y[i]], color=col, lw=1.2, solid_capstyle="butt")
-        ax.plot(est, y[i], "o", color=col, ms=4.2, zorder=3)
+        if abs(hi - lo) < 1e-8:
+            ax.plot(est, y[i], "o", markerfacecolor="white", markeredgecolor=col, ms=4.2, zorder=3)
+        else:
+            ax.plot([lo, hi], [y[i], y[i]], color=col, lw=1.2, solid_capstyle="butt")
+            ax.plot(est, y[i], "o", color=col, ms=4.2, zorder=3)
     ax.set_yticks(y)
     ax.set_yticklabels(labels)
     ax.set_xscale("log")

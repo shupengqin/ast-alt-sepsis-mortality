@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+
 import sys
 from pathlib import Path
 
@@ -25,7 +26,6 @@ mpl.rcParams.update({
     "axes.linewidth": 0.6,
 })
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from deritis_paper.fig_style import (
     EICU_C,
     MIMIC_C,
@@ -260,7 +260,7 @@ def draw_column(ax, title, header, fill, steps, groups, group_title):
     ax.add_patch(FancyBboxPatch((0.3, 2.55), 9.4, 2.35, boxstyle="square,pad=0",
                                 facecolor="white", edgecolor="black", linewidth=0.7))
     ax.text(5.0, 4.55, group_title, ha="center", va="center", fontsize=6.4, fontweight="bold")
-    ax.text(5.0, 3.85, "Cutpoints fixed in MIMIC-IV: 1.0357, 1.4444, 2.0294",
+    ax.text(5.0, 3.85, "MIMIC-IV cutpoints: 1.04, 1.44, 2.03" if "MIMIC" in title else "MIMIC-IV cutpoints applied",
             ha="center", va="center", fontsize=6.2)
     ax.text(5.0, 3.15,
             "    ".join(f"{lab} n={groups[lab]:,}" for lab in QUARTILES),
@@ -274,40 +274,57 @@ def figure1(m, e, mq, eq):
     m_steps = [
         (f"First ICU stay with sepsis\nn = {m['sepsis_first']:,}",
          f"Excluded: n = {m['chronic_liver']:,}\nChronic liver disease"),
-        (f"No chronic liver disease\nAll care units kept\nn = {m_base:,}",
-         f"Excluded: n = {m_base - sum(mq.values()):,}\nNo usable AST/ALT in 24 h"),
+        (f"No chronic liver disease\nCardiac surgical units retained\nn = {m_base:,}",
+         f"Excluded: n = {m_base - sum(mq.values()):,}\n16,780 no pair; 5 after death"),
         (f"Analysis cohort\nn = {sum(mq.values()):,}", None),
     ]
     e_steps = [
         (f"First ICU stay with sepsis\nn = {e['sepsis_first']:,}",
          f"Excluded: n = {e['chronic_liver']:,}\nChronic liver disease"),
-        (f"No chronic liver disease\nCardiac units kept\nn = {e_base:,}",
-         f"Excluded: n = {e_base - sum(eq.values()):,}\nNo usable AST/ALT in 24 h"),
+        (f"No chronic liver disease\nCardiac surgical units retained\nn = {e_base:,}",
+         f"Excluded: n = {e_base - sum(eq.values()):,}\nNo valid AST/ALT pair in 24 h"),
         (f"Analysis cohort\nn = {sum(eq.values()):,}", None),
     ]
     draw_column(axes[0], "MIMIC-IV", "#243447", "#F4F6F8",
-                m_steps, mq, "Quartile sample")
+                m_steps, mq, "Quartile distribution")
     draw_column(axes[1], "eICU-CRD", "#243447", "#F4F6F8",
-                e_steps, eq, "Same cutpoints")
+                e_steps, eq, "Quartile distribution")
     fig.subplots_adjust(left=0.02, right=0.98, top=0.96, bottom=0.04, wspace=0.08)
     save_pub(fig, "Figure_1")
 
 
 def figure2(mimic, m_mort, e_mort):
-    fig = plt.figure(figsize=(7.2, 6.0))
-    gs = fig.add_gridspec(2, 2, hspace=0.48, wspace=0.38)
-    ax = fig.add_subplot(gs[0, 0])
+    fig = plt.figure(figsize=(7.2, 8.6))
+    gs = fig.add_gridspec(3, 2, height_ratios=[1.35, 1.0, 0.95], hspace=0.55, wspace=0.42)
+    top = gs[0, 0].subgridspec(2, 1, height_ratios=[4.2, 1.45], hspace=0.55)
+    ax = fig.add_subplot(top[0])
     panel_letter(ax, "A")
     for q in QUARTILES:
         xs, ys = km_xy(mimic[mimic["quartile"] == q])
         ax.step(xs, ys, where="post", color=Q_COLORS[q], lw=1.5,
                 label=f"{q} (n={(mimic['quartile']==q).sum():,})")
     ax.set_xlim(0, 28)
+    ax.set_xticks([0, 7, 14, 21, 28])
     ax.set_ylim(0, 1.02)
     ax.set_xlabel("Days from enzyme measurement")
     ax.set_ylabel("Survival probability")
-    ax.set_title("MIMIC-IV, all with a ratio", fontsize=8, pad=10)
+    ax.set_title("Kaplan–Meier survival", fontsize=8, pad=10)
+    ax.text(0.98, 0.98, "Log-rank P < 0.001", transform=ax.transAxes,
+            ha="right", va="top", fontsize=5.5)
     ax.legend(loc="lower left", fontsize=5.4)
+    axr = fig.add_subplot(top[1])
+    axr.set_xlim(0, 28)
+    axr.axis("off")
+    days = (0, 7, 14, 21, 28)
+    xtrans = axr.get_xaxis_transform()
+    axr.text(-0.22, 0.92, "No. at risk", transform=axr.transAxes, ha="right", va="center", fontsize=5.2, clip_on=False)
+    for j, q in enumerate(QUARTILES):
+        sub = mimic[mimic["quartile"] == q]
+        y = 0.74 - j * 0.18
+        axr.text(-0.22, y, q, transform=axr.transAxes, ha="right", va="center", fontsize=5.2, color=Q_COLORS[q], clip_on=False)
+        for day in days:
+            n_risk = int((sub["time_28"] >= day).sum())
+            axr.text(day, y, f"{n_risk:,}", transform=xtrans, ha="center", va="center", fontsize=5.1)
 
     ax = fig.add_subplot(gs[0, 1])
     panel_letter(ax, "B")
@@ -319,32 +336,41 @@ def figure2(mimic, m_mort, e_mort):
     ax.bar(x + w / 2, er, w, color=EICU_C, label="eICU, hospital death")
     ax.set_xticks(x)
     ax.set_xticklabels(QUARTILES)
-    ax.set_ylabel("Death (%)")
+    ax.set_ylabel("Mortality (%)")
     ax.set_ylim(0, 52)
-    ax.set_title("Crude death, two endpoints", fontsize=8, pad=10)
+    ax.set_title("Crude mortality by quartile", fontsize=8, pad=10)
     ax.legend(loc="upper left", fontsize=5.2)
 
     ax = fig.add_subplot(gs[1, 0])
     panel_letter(ax, "C")
     forest(
         ax,
-        ["MIMIC Q2, HR", "eICU Q2, OR", "MIMIC Q3, HR", "eICU Q3, OR", "MIMIC Q4, HR", "eICU Q4, OR"],
-        [1.05, 0.87, 1.19, 1.05, 1.45, 1.64],
-        [0.96, 0.76, 1.09, 0.91, 1.33, 1.43],
-        [1.15, 1.01, 1.30, 1.21, 1.59, 1.88],
-        [MIMIC_C, EICU_C] * 3,
-        "Adjusted associations",
-        "HR (MIMIC-IV) or OR (eICU)",
+        ["Q1 (reference)", "Q2", "Q3", "Q4"],
+        [1.0, 1.04, 1.17, 1.43],
+        [1.0, 0.95, 1.07, 1.31],
+        [1.0, 1.14, 1.29, 1.57],
+        [MIMIC_C, MIMIC_C, MIMIC_C, MIMIC_C],
+        "Imputed hazard ratios",
+        "Hazard ratio",
     )
 
     ax = fig.add_subplot(gs[1, 1])
     panel_letter(ax, "D")
+    forest(
+        ax,
+        ["Q1 (reference)", "Q2", "Q3", "Q4"],
+        [1.0, 1.15, 1.30, 1.95],
+        [1.0, 0.99, 1.14, 1.69],
+        [1.0, 1.35, 1.49, 2.26],
+        [EICU_C, EICU_C, EICU_C, EICU_C],
+        "Imputed odds ratios",
+        "Odds ratio",
+    )
+
+    ax = fig.add_subplot(gs[2, :])
+    panel_letter(ax, "E")
     rcs_panel(ax, mimic)
-    fig.savefig(OUT / "Figure_2.pdf", bbox_inches="tight")
-    fig.savefig(OUT / "Figure_2.svg", bbox_inches="tight")
-    fig.savefig(OUT / "Figure_2.tiff", dpi=600, bbox_inches="tight")
-    fig.savefig(OUT / "Figure_2.png", dpi=300, bbox_inches="tight")
-    plt.close(fig)
+    save_pub(fig, "Figure_2")
 
 
 def labeled_bars(ax, tab, ylabel, title):
@@ -396,7 +422,9 @@ def rcs_panel(ax, mimic):
     ax.xaxis.set_minor_locator(FixedLocator([]))
     ax.set_xlabel("AST/ALT ratio")
     ax.set_ylabel("Hazard ratio")
-    ax.set_title("Adjusted spline", fontsize=8, pad=10)
+    ax.text(0.03, 0.97, "P for association < 0.001\nP for nonlinearity = 0.20",
+            transform=ax.transAxes, va="top", ha="left", fontsize=5.5)
+    ax.set_title("Complete-case spline", fontsize=8, pad=10)
 
 
 def incr_forest(ax, mimic_m, eicu_m, metric, title):
@@ -493,21 +521,21 @@ def figure5(mimic, subgroup):
     w = 0.36
     low = slice_rates(mimic, "event_28", mimic["lactate"] < 4)
     high = slice_rates(mimic, "event_28", mimic["lactate"] >= 4)
-    ax.bar(x - w / 2, low, w, color="#8AA0B4", label="Lactate < 4")
-    ax.bar(x + w / 2, high, w, color="#8E5A8A", label="Lactate >= 4")
+    ax.bar(x - w / 2, low, w, color="#8AA0B4", label="Lactate <4 mmol/L")
+    ax.bar(x + w / 2, high, w, color="#8E5A8A", label="Lactate ≥4 mmol/L")
     ax.set_xticks(x)
     ax.set_xticklabels(QUARTILES)
-    ax.set_ylim(0, 75)
+    ax.set_ylim(0, 60)
     ax.set_ylabel("28-day mortality (%)")
-    ax.set_title("MIMIC-IV, by lactate", fontsize=8, pad=10)
+    ax.set_title("Mortality by lactate", fontsize=8, pad=10)
     ax.legend()
 
     ax = fig.add_subplot(gs[0, 1])
     panel_letter(ax, "B")
     rows = [
         ("Men vs women", 1.03, 0.84, 1.27),
-        ("Age >= 65", 0.80, 0.64, 1.00),
-        ("Lactate >= 4", 1.09, 0.85, 1.41),
+        ("Age ≥65 years", 0.80, 0.64, 1.00),
+        ("Lactate ≥4 mmol/L", 1.09, 0.85, 1.41),
         ("Cardiac surgical ICU", 0.61, 0.36, 1.03),
     ][::-1]
     y = np.arange(len(rows))
@@ -519,8 +547,39 @@ def figure5(mimic, subgroup):
     ax.set_yticklabels([r[0] for r in rows])
     ax.set_xlim(0.25, 1.70)
     ax.set_xlabel("Interaction HR")
-    ax.set_title("Effect modification", fontsize=8, pad=10)
+    ax.set_title("Interaction hazard ratios", fontsize=8, pad=10)
     save_pub(fig, "Figure_3")
+
+
+def figure4():
+    fig, axes = plt.subplots(1, 2, figsize=(7.2, 3.6))
+    ax = axes[0]
+    panel_letter(ax, "A")
+    forest(
+        ax,
+        ["Days 0–3", "After day 3", "Days 0–7", "After day 7", "Days 0–14", "After day 14"],
+        [2.04, 1.25, 1.81, 1.13, 1.62, 0.99],
+        [1.72, 1.12, 1.60, 0.99, 1.46, 0.83],
+        [2.41, 1.38, 2.05, 1.28, 1.79, 1.19],
+        ["#243447"] * 6,
+        "Highest vs lowest quartile",
+        "Imputed hazard ratio",
+    )
+    ax = axes[1]
+    panel_letter(ax, "B")
+    x = np.arange(4)
+    w = 0.36
+    early = [9.0, 12.3, 15.2, 19.7]
+    late = [11.9, 11.6, 14.4, 16.0]
+    ax.bar(x - w / 2, early, w, color="#3B6EA5", label="Days 0–7")
+    ax.bar(x + w / 2, late, w, color="#8AA0B4", label="Days 7–28, if alive at day 7")
+    ax.set_xticks(x)
+    ax.set_xticklabels(QUARTILES)
+    ax.set_ylim(0, 32)
+    ax.set_ylabel("Deaths in the interval (%)")
+    ax.set_title("Absolute risk, MIMIC-IV", fontsize=8, pad=10)
+    ax.legend(loc="upper left", fontsize=5.4)
+    save_pub(fig, "Figure_4")
 
 
 def main():
@@ -538,8 +597,9 @@ def main():
     e_mort.to_csv(OUT / "source_eicu_quartile_mortality.csv", index=False)
     figure1(m_flow, e_flow, mq, eq)
     figure2(mimic, m_mort, e_mort)
-    sub = pd.read_csv(r"F:\CKB数据库\analysis\deritis_paper\subgroups_q4_vs_q1.csv")
+    sub = pd.read_csv(Path(__file__).resolve().parent / "subgroups_q4_vs_q1.csv")
     figure5(mimic, sub)
+    figure4()
     print("done", OUT)
 
 

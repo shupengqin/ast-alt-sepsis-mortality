@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+
 import json
 from pathlib import Path
 
@@ -19,7 +20,7 @@ from sklearn.impute import IterativeImputer
 from deritis_paper_analysis import load_eicu, load_mimic
 from deritis_round2 import add_covariates, rubin
 
-OUT = Path(r"F:\CKB数据库\analysis\deritis_paper")
+OUT = Path(__file__).resolve().parent / "deritis_paper"
 USE = [
     "age", "male", "sofa", "lactate", "log_bili", "creatinine", "aud",
     "u_CCU", "u_SICU", "u_CVICU", "u_Other",
@@ -100,7 +101,7 @@ def sensitivity(df):
     naf = NelsonAalenFitter()
     naf.fit(work["time_28"], work["event_28"])
     work["na_hazard"] = np.asarray(naf.cumulative_hazard_at_times(work["time_28"]).to_numpy(), float).ravel()
-    imp_cols = USE + ["event_28", "na_hazard"]
+    imp_cols = ["q2", "q3", "q4"] + USE + ["event_28", "na_hazard"]
     base = work[imp_cols]
     store = {term: {"coef": [], "var": []} for term in ("q4", "q4_late", "q4_after")}
     for seed in range(30):
@@ -139,7 +140,7 @@ def eicu_mi(eicu):
     for name, label in (("u_MICU", "MICU"), ("u_CCU", "CCU"), ("u_SICU", "SICU"), ("u_Cardiac", "Cardiac")):
         d[name] = (d["unit"] == label).astype(float)
     miss = {col: float(d[col].isna().mean()) for col in ("age", "apachescore", "lactate", "log_bili", "creatinine", "y")}
-    imp_cols = ["age", "male", "apachescore", "lactate", "log_bili", "creatinine", "y", "aud", "u_MICU", "u_CCU", "u_SICU", "u_Cardiac"]
+    imp_cols = ["q2", "q3", "q4", "age", "male", "apachescore", "lactate", "log_bili", "creatinine", "y", "aud", "u_MICU", "u_CCU", "u_SICU", "u_Cardiac"]
     work = d.dropna(subset=["y", "quartile"]).copy()
     work["q2"] = (work["quartile"] == "Q2").astype(float)
     work["q3"] = (work["quartile"] == "Q3").astype(float)
@@ -159,7 +160,7 @@ def eicu_mi(eicu):
         X["q3"] = work["q3"]
         X["q4"] = work["q4"]
         X = sm.add_constant(X, has_constant="add")
-        keep = [col for col in X.columns if float(X[col].std()) > 1e-8]
+        keep = [col for col in X.columns if col == "const" or float(X[col].std()) > 1e-8]
         X = X[keep]
         try:
             res = sm.Logit(work["y"], X).fit(disp=False, maxiter=200)

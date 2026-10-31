@@ -7,6 +7,7 @@ Validation cohort: eICU, including cardiac and cardiothoracic units.
 from __future__ import annotations
 
 import os
+
 import json
 from pathlib import Path
 
@@ -21,7 +22,7 @@ from patsy import build_design_matrices, dmatrix
 from scipy import stats
 from statsmodels.duration.hazard_regression import PHReg
 
-OUT = Path(r"F:\CKB数据库\analysis\deritis_paper")
+OUT = Path(__file__).resolve().parent / "deritis_paper"
 OUT.mkdir(parents=True, exist_ok=True)
 COV = "age + male + sofa + lactate + log_bili + creatinine + C(unit)"
 QTERMS = ["C(quartile)[T.Q2]", "C(quartile)[T.Q3]", "C(quartile)[T.Q4]"]
@@ -69,8 +70,11 @@ def connect(db):
 
 def prep_ratio(df):
     d = df.copy()
-    ok = d["ast"].between(5, 5000) & d["alt"].between(5, 2000)
-    d.loc[~ok, ["ast", "alt"]] = np.nan
+    d["ast_raw"] = pd.to_numeric(d["ast"], errors="coerce")
+    d["alt_raw"] = pd.to_numeric(d["alt"], errors="coerce")
+    ok = d["ast_raw"].between(5, 5000) & d["alt_raw"].between(5, 2000)
+    d["ast"] = d["ast_raw"].where(ok)
+    d["alt"] = d["alt_raw"].where(ok)
     d["ratio"] = d["ast"] / d["alt"]
     d["log_ratio"] = np.log(d["ratio"])
     d["log_ast"] = np.log(d["ast"])
@@ -170,7 +174,7 @@ def logrank_q4(df):
     return {"chi2": float(chi), "p": float(stats.chi2.sf(chi, 1))}
 
 
-def load_mimic():
+def load_mimic(return_frame=False):
     conn = connect("mimiciv31")
     df = pd.read_sql_query(
         """
@@ -329,6 +333,8 @@ def load_mimic():
         ),
         encoding="utf-8",
     )
+    if return_frame:
+        return exposed, cuts, int(len(df)), df
     return exposed, cuts, int(len(df))
 
 

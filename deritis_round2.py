@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+
 import json
 from pathlib import Path
 
@@ -14,7 +15,7 @@ from sklearn.impute import IterativeImputer
 
 from deritis_paper_analysis import cox_fit, load_eicu, load_mimic
 
-OUT = Path(r"F:\CKB数据库\analysis\deritis_paper")
+OUT = Path(__file__).resolve().parent / "deritis_paper"
 CORE = "q2 + q3 + q4 + age + male + sofa + lactate + log_bili + creatinine + aud + C(unit) - 1"
 TERMS = ["q2", "q3", "q4"]
 
@@ -157,7 +158,7 @@ def multiple_imputation(df, extra_cols, m=30, split=False):
     naf = NelsonAalenFitter()
     naf.fit(work["time_28"], work["event_28"])
     work["na_hazard"] = np.asarray(naf.cumulative_hazard_at_times(work["time_28"]).to_numpy(), float).ravel()
-    imp_cols = use_cols + ["event_28", "na_hazard"]
+    imp_cols = ["q2", "q3", "q4"] + use_cols + ["event_28", "na_hazard"]
     base = work[imp_cols]
     store = {term: {"coef": [], "var": []} for term in TERMS}
     early_store = {term: {"coef": [], "var": []} for term in TERMS}

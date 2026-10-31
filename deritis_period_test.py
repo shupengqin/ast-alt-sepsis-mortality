@@ -20,7 +20,7 @@ from statsmodels.duration.hazard_regression import PHReg
 from deritis_paper_analysis import load_eicu, load_mimic
 from deritis_round2 import add_covariates, eicu_with_unit, rubin
 
-OUT = Path(r"F:\CKB数据库\analysis\deritis_paper")
+OUT = Path(__file__).resolve().parent / "deritis_paper"
 USE = [
     "age", "male", "sofa", "lactate", "log_bili", "creatinine", "aud",
     "u_CCU", "u_SICU", "u_CVICU", "u_Other",
@@ -83,7 +83,7 @@ def main():
     work["na_hazard"] = np.asarray(
         naf.cumulative_hazard_at_times(work["time_28"]).to_numpy(), float
     ).ravel()
-    imp_cols = USE + ["event_28", "na_hazard"]
+    imp_cols = ["q2", "q3", "q4"] + USE + ["event_28", "na_hazard"]
     base = work[imp_cols]
     store = {term: {"coef": [], "var": []} for term in ("q4", "q4_late", "q4_after")}
     m = 30
