@@ -26,19 +26,24 @@ def pool(store):
     return {k: rubin(v["coef"], v["var"]) for k, v in store.items()}
 
 
-def smd(x1, x0, w1=None):
-    x1 = np.asarray(x1, float)
-    x0 = np.asarray(x0, float)
-    if w1 is None:
-        m1, v1 = np.nanmean(x1), np.nanvar(x1, ddof=1)
+def smd(x, target, reference_a, reference_b, w=None):
+    """Difference from the target population, scaled by the unweighted pooled SD.
+
+    The scale uses the analyzed stays and the stays with no valid pair. Weighting
+    changes the analyzed mean, not the denominator. The target is every eligible stay.
+    """
+    x = np.asarray(x, float)
+    if w is None:
+        mean = np.nanmean(x)
     else:
-        w = np.asarray(w1, float)
-        w = w / w.sum()
-        m1 = np.nansum(w * x1)
-        v1 = np.nansum(w * (x1 - m1) ** 2) / (1 - np.nansum(w ** 2))
-    m0, v0 = np.nanmean(x0), np.nanvar(x0, ddof=1)
+        ww = np.asarray(w, float)
+        ww = ww / np.nansum(ww)
+        mean = np.nansum(ww * x)
+    mean_target = np.nanmean(np.asarray(target, float))
+    v1 = np.nanvar(np.asarray(reference_a, float), ddof=1)
+    v0 = np.nanvar(np.asarray(reference_b, float), ddof=1)
     denom = np.sqrt((v1 + v0) / 2)
-    return float((m1 - m0) / denom) if denom else None
+    return float((mean - mean_target) / denom) if denom else None
 
 
 def main():
@@ -120,6 +125,7 @@ def main():
     d["sofa_fill"] = d["sofa"].fillna(d["sofa"].median())
     d["aud"] = d["aud"].fillna(0).astype(float)
     d["male"] = d["male"].fillna(0).astype(float)
+    d["u_MICU"] = (d["unit"] == "MICU").astype(float)
     for unit in ("CCU", "SICU", "CVICU", "Other"):
         d[f"u_{unit}"] = (d["unit"] == unit).astype(float)
     xcols = ["age", "male", "sofa_fill", "sofa_miss", "aud", "u_CCU", "u_SICU", "u_CVICU", "u_Other"]
@@ -138,6 +144,7 @@ def main():
     ess = float((w.sum() ** 2) / np.sum(np.square(w)))
     qs = w.quantile([0, 0.01, 0.05, 0.25, 0.5, 0.75, 0.95, 0.99, 1]).to_dict()
     unmeasured = d.loc[d["measured"] == 0]
+    eligible = d.loc[~d["stay_id"].isin(set(mimic.loc[chart_after, "stay_id"]))]
     balance = []
     for label, col in (
         ("Age", "age"),
@@ -145,6 +152,7 @@ def main():
         ("SOFA", "sofa_fill"),
         ("SOFA missing", "sofa_miss"),
         ("Alcohol use disorder", "aud"),
+        ("MICU", "u_MICU"),
         ("CCU", "u_CCU"),
         ("SICU", "u_SICU"),
         ("CVICU", "u_CVICU"),
@@ -152,8 +160,8 @@ def main():
     ):
         balance.append({
             "variable": label,
-            "smd_unweighted": smd(measured[col], unmeasured[col]),
-            "smd_weighted": smd(measured[col], unmeasured[col], measured["w"]),
+            "smd_unweighted": smd(measured[col], eligible[col], measured[col], unmeasured[col]),
+            "smd_weighted": smd(measured[col], eligible[col], measured[col], unmeasured[col], measured["w"]),
         })
     payload = {
         "landmark": {

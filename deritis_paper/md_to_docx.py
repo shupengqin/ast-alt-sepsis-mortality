@@ -253,18 +253,18 @@ def main():
         doc,
         ["Variable", "Unweighted SMD", "Weighted SMD"],
         [
-            ["Age", "-0.08", "-0.02"],
+            ["Age", "-0.04", "0.01"],
             ["Male", "-0.01", "-0.01"],
-            ["SOFA", "0.51", "0.26"],
-            ["Alcohol use disorder", "0.12", "0.06"],
-            ["Medical ICU", "0.23", "0.12"],
-            ["Coronary care unit", "0.19", "0.10"],
-            ["Surgical or trauma ICU", "0.12", "0.05"],
-            ["Cardiac surgical ICU", "-0.55", "-0.24"],
-            ["Other unit", "-0.03", "-0.02"],
+            ["SOFA", "0.26", "-0.01"],
+            ["Alcohol use disorder", "0.06", "0.00"],
+            ["Medical ICU", "0.12", "0.00"],
+            ["Coronary care unit", "0.10", "0.00"],
+            ["Surgical or trauma ICU", "0.06", "-0.01"],
+            ["Cardiac surgical ICU", "-0.28", "0.01"],
+            ["Other unit", "-0.01", "0.00"],
         ],
     )
-    add_para(doc, "Note. The comparison is between the 16,616 analyzed stays and eligible stays with no valid enzyme pair. Weights are stabilized and truncated at the 1st and 99th percentiles. Median weight 0.88 (interquartile range 0.73-1.07); truncated range 0.55-3.97; effective sample size 12,993. A positive value means a higher mean among patients with a valid pair. SOFA was complete in both groups.")
+    add_para(doc, "Note. Each column compares the 16,616 analyzed stays with all 33,396 eligible stays. The denominator is the unweighted pooled standard deviation of the analyzed stays and the 16,780 stays with no valid pair, so weighting changes the mean but not the scale. Weights are stabilized and truncated at the 1st and 99th percentiles. Median weight 0.88 (interquartile range 0.73-1.07); truncated range 0.55-3.97; effective sample size 12,993. A positive value means a higher mean among analyzed stays. SOFA was complete.")
     doc.save(OUT)
     text = "\n".join(p.text for p in doc.paragraphs)
     print("paras", len(doc.paragraphs), "tables", len(doc.tables), "pics", len(doc.inline_shapes))
