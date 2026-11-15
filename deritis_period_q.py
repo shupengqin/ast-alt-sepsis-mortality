@@ -1,6 +1,6 @@
+from pathlib import Path
 """Day-7 time split with quartiles inside the imputation model."""
 
-from pathlib import Path
 import json
 
 from deritis_mi_q import CACHE, fill_once, period_fit, prepare_imputation, rubin

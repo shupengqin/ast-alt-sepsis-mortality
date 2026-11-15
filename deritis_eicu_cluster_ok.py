@@ -1,6 +1,6 @@
-"""Hospital-clustered standard errors for the imputed eICU hospital-death model."""
-
 from pathlib import Path
+"""Hospital-clustered standard errors on the eICU imputation that reproduces OR 1.64."""
+
 import json
 
 import numpy as np

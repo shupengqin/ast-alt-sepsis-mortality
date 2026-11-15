@@ -1,6 +1,6 @@
+from pathlib import Path
 """IPW on every measured stay, without requiring lactate."""
 
-from pathlib import Path
 import pickle
 
 import numpy as np

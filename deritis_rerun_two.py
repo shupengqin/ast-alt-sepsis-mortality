@@ -1,6 +1,6 @@
+from pathlib import Path
 """Re-estimate two reported sensitivities with quartiles inside the imputation model."""
 
-from pathlib import Path
 import json
 import pickle
 

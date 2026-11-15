@@ -1,8 +1,8 @@
-"""Schoenfeld test, covariate-by-period sensitivity, and eICU imputation."""
-
 from __future__ import annotations
 
 import os
+"""Schoenfeld test, covariate-by-period sensitivity, and eICU imputation."""
+
 
 import json
 from pathlib import Path

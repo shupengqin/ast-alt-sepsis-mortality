@@ -36,6 +36,8 @@ before the reported primary models.
 - `deritis_eicu_cluster_ok.py` fits the eICU model with hospital-clustered standard errors.
 - `deritis_rerun_two.py` fits the joint enzyme model and the expanded-covariate model.
 - `deritis_ipw_all.py` fits the inverse-probability weighted model.
-- `deritis_paper/make_figures.py` writes the figures.
+- `deritis_friend_three.py` fits the 24-hour landmark split, the C-index comparison, and the IPW balance table.
+- `deritis_time_curves.py` writes the Figure 4A curves. Intervals use the delta method and the covariance among the time coefficients.
+- `deritis_paper/make_figures.py` writes the figures. Figure 4A reads `deritis_paper/figures/source_time_curves.csv` from `deritis_time_curves.py`.
 
 `manuscript_full.md` is the manuscript source that corresponds to this code.

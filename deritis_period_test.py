@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Test whether the quartile hazard differs before and after day 7.
 
 Fits a period-by-quartile interaction on each of 30 imputed datasets
@@ -5,7 +7,6 @@ and pools the interaction with Rubin's rules. Also refits the eICU
 logistic model on the frozen cutpoints.
 """
 
-from __future__ import annotations
 
 import json
 from pathlib import Path

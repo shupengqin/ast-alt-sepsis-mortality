@@ -1,8 +1,8 @@
-"""Landmark follow-up, richer covariates, multiple imputation, and interactions."""
-
 from __future__ import annotations
 
 import os
+"""Landmark follow-up, richer covariates, multiple imputation, and interactions."""
+
 
 import json
 from pathlib import Path

@@ -1,9 +1,9 @@
+from pathlib import Path
 """Primary hazard ratios with quartiles inside the imputation model.
 
 Also refits the day-7 time split in the 24-hour landmark cohort.
 """
 
-from pathlib import Path
 import json
 import pickle
 

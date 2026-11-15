@@ -1,8 +1,8 @@
-"""Five multi-panel figures for the AST/ALT sepsis manuscript."""
-
 from __future__ import annotations
 
 import os
+"""Five multi-panel figures for the AST/ALT sepsis manuscript."""
+
 
 import sys
 from pathlib import Path
@@ -555,16 +555,18 @@ def figure4():
     fig, axes = plt.subplots(1, 2, figsize=(7.2, 3.6))
     ax = axes[0]
     panel_letter(ax, "A")
-    forest(
-        ax,
-        ["Days 0–3", "After day 3", "Days 0–7", "After day 7", "Days 0–14", "After day 14"],
-        [2.04, 1.25, 1.81, 1.13, 1.62, 0.99],
-        [1.72, 1.12, 1.60, 0.99, 1.46, 0.83],
-        [2.41, 1.38, 2.05, 1.28, 1.79, 1.19],
-        ["#243447"] * 6,
-        "Highest vs lowest quartile",
-        "Imputed hazard ratio",
-    )
+    curves = pd.read_csv(Path(__file__).resolve().parent / "figures" / "source_time_curves.csv")
+    colors = {"Log time": "#3B6EA5", "Piecewise linear": "#8E5A8A"}
+    for name, part in curves.groupby("model", sort=False):
+        ax.fill_between(part["day"], part["lo"], part["hi"], color=colors[name], alpha=0.18, linewidth=0)
+        ax.plot(part["day"], part["hr"], color=colors[name], lw=1.4, label=name)
+    ax.axhline(1, color="#888888", lw=0.6, ls="--")
+    ax.set_xlim(1, 28)
+    ax.set_ylim(0.6, 2.6)
+    ax.set_xlabel("Days from enzyme measurement")
+    ax.set_ylabel("Hazard ratio, Q4 vs Q1")
+    ax.set_title("Complete-case time-varying hazard", fontsize=8, pad=10)
+    ax.legend(frameon=False, fontsize=5.4)
     ax = axes[1]
     panel_letter(ax, "B")
     x = np.arange(4)

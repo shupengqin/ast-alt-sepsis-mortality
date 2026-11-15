@@ -27,6 +27,8 @@ def add_para(doc, text, center=False, size=12, bold=False):
         run.font.size = Pt(size)
     p.paragraph_format.space_after = Pt(8)
     p.paragraph_format.line_spacing = 1.15
+    p.paragraph_format.first_line_indent = Pt(0)
+    p.paragraph_format.left_indent = Pt(0)
     return p
 
 
@@ -47,7 +49,7 @@ def emit_line(doc, line):
         picture = ROOT / "figures" / f"Figure_{number}.png"
         if picture.exists():
             doc.add_picture(str(picture), width=Inches(6.3))
-    add_para(doc, line, center=line.startswith("Xiaoye"))
+    add_para(doc, line, center=line.startswith("Xiaoye Xu1#"))
 
 
 def main():
@@ -102,7 +104,7 @@ def main():
         if text.lower().startswith("article type:"):
             doc.add_heading("Article type", level=1)
             add_para(doc, text.split(":", 1)[1].strip())
-            add_para(doc, f"Main-text word count: {main_n:,}; Abstract word count: {abstract_n:,}; Figures: 4; Tables: 6.")
+            add_para(doc, f"Main-text word count: {main_n:,}; Abstract word count: {abstract_n:,}; Figures: 4; Tables: 7.")
             continue
         add_para(doc, text, center=text.startswith("Xiaoye"))
 
@@ -129,7 +131,7 @@ def main():
             emit_line(doc, line)
 
     doc.add_heading("Main table", level=1)
-    add_para(doc, "Table 1. MIMIC-IV patients with a usable AST/ALT ratio. Deaths are counted from the enzyme day.")
+    add_para(doc, "Table 1. MIMIC-IV patients with a valid AST/ALT ratio. Deaths are counted from the day of enzyme measurement.")
     add_table(
         doc,
         ["", "Overall", "Q1", "Q2", "Q3", "Q4"],
@@ -151,7 +153,7 @@ def main():
     add_para(doc, "Table 2. Analysis cohort and eligible MIMIC-IV stays without a valid AST/ALT pair. Deaths are counted from ICU admission.")
     add_table(
         doc,
-        ["", "Usable AST and ALT", "No usable pair"],
+        ["", "Analysis cohort", "No valid pair"],
         [
             ["N", "16616", "16780"],
             ["Age, years", "68.9 (57.4-79.6)", "70.0 (59.2-80.1)"],
@@ -185,7 +187,7 @@ def main():
             ["eICU Q4 vs Q1, imputed, clustered SE", "OR 1.95", "1.69-2.26", "<0.001"],
         ],
     )
-    add_para(doc, "Note. Quartile rows for 28-day death, and the log AST and log ALT rows, are multiply imputed on 16,616 patients. The day 0-7, day 7-28, and relative rows are from one time-varying model on the same 30 imputed datasets. The complete-case quartile row and the complete-case joint enzyme estimates use 10,890 patients; those joint estimates are also in Table 5. The eICU rows use all 12,374 patients and hospital-clustered standard errors. The complete-case eICU estimate is in Table 5.")
+    add_para(doc, "Note. Quartile rows for 28-day death, and the log AST and log ALT rows, are multiply imputed on 16,616 patients. The day 0-7, day 7-28, and relative rows are from one time-varying model on the same 30 imputed datasets. The complete-case quartile row uses 10,890 patients. The complete-case joint enzyme estimates on these 10,890 patients are shown in Table 5. The eICU rows use all 12,374 patients and hospital-clustered standard errors. The complete-case eICU estimate is in Table 5.")
     add_para(doc, "Table 4. Interaction hazard ratios in one sample: 5,423 complete cases from the lowest and highest quartiles, with 1,629 deaths. Every row uses this sample.")
     add_table(
         doc,
@@ -204,10 +206,19 @@ def main():
         ["Analysis", "Contrast", "Estimate", "95% CI"],
         [
             ["Alive at 24 hours, days 0-7", "Q4 vs Q1", "HR 1.82", "1.59-2.08"],
+            ["Alive at 24 hours, days 7-28", "Q4 vs Q1", "HR 1.17", "1.03-1.32"],
+            ["Landmark at 24 hours, until day 7", "Q4 vs Q1", "HR 1.82", "1.58-2.09"],
+            ["Landmark at 24 hours, days 7-28", "Q4 vs Q1", "HR 1.20", "1.06-1.36"],
+            ["Landmark at 24 hours, later relative to early", "Q4", "HR 0.66", "0.55-0.80"],
             ["Measurement-day deaths removed, days 0-7", "Q4 vs Q1", "HR 1.81", "1.59-2.06"],
             ["Measurement-day deaths removed, days 7-28", "Q4 vs Q1", "HR 1.15", "1.01-1.30"],
             ["Measurement-day deaths removed, later relative to early", "Q4", "HR 0.63", "0.53-0.76"],
-            ["Alive at 24 hours, days 7-28", "Q4 vs Q1", "HR 1.17", "1.03-1.32"],
+            ["Log-time interaction, complete case, day 1", "Q4 vs Q1", "HR 1.95", "1.61-2.35"],
+            ["Log-time interaction, complete case, day 7", "Q4 vs Q1", "HR 1.28", "1.15-1.43"],
+            ["Log-time interaction, complete case, day 14", "Q4 vs Q1", "HR 1.11", "0.96-1.27"],
+            ["Log-time interaction, complete case, day 28", "Q4 vs Q1", "HR 0.95", "0.79-1.15"],
+            ["Piecewise-linear time, complete case, day 1", "Q4 vs Q1", "HR 1.65", "1.43-1.91"],
+            ["Piecewise-linear time, complete case, day 28", "Q4 vs Q1", "HR 1.28", "0.97-1.69"],
             ["Days 0-3, imputed", "Q4 vs Q1", "HR 2.04", "1.72-2.41"],
             ["After day 3, imputed", "Q4 vs Q1", "HR 1.25", "1.12-1.38"],
             ["Days 0-14, imputed", "Q4 vs Q1", "HR 1.62", "1.46-1.79"],
@@ -223,7 +234,7 @@ def main():
             ["eICU complete case, hospital-clustered SE", "Q4 vs Q1", "OR 1.96", "1.63-2.36"],
         ],
     )
-    add_para(doc, "Note. Quartile indicators were predictors in the imputation model. The rows labeled “Alive at 24 hours” exclude patients who died within 24 hours after ICU admission. Follow-up is still counted from the day of enzyme measurement. The measurement-day rows remove the 269 deaths on the calendar day of the enzyme pair from the 16,616-patient cohort and refit the day-7 split. The ratio row is the later hazard divided by the first-week hazard. The log ratio and log mean rows are the joint enzyme model rewritten in that form; the mean-level term is the test of whether the ratio alone is sufficient. The day-3 and day-14 rows use that same time-varying model. Inverse-probability weights used age, sex, SOFA, alcohol use disorder, and care unit, and were applied to all 16,616 analyzed stays; that model does not include lactate. Enzyme-bound rows keep the original quartile cutpoints. The hospital-death odds ratio uses the same covariates as the 28-day hazard model. The log AST and log ALT rows are the complete-case joint model (10,890 patients). The eICU row is the complete-case model with standard errors clustered by hospital (157 hospitals).")
+    add_para(doc, "Note. Quartile indicators were predictors in the imputation model. The rows labeled “Alive at 24 hours” exclude patients who died within 24 hours after ICU admission, and follow-up is still counted from the day of enzyme measurement. The landmark rows use those same patients but restart follow-up at 24 hours after ICU admission. Day 7 and day 28 are counted from ICU admission, so the early interval is about 6 days. Follow-up is censored at day 28 from ICU admission. Twenty deaths that were inside 28 days of the enzyme measurement fell after that censoring time. The measurement-day rows remove the 269 deaths on the calendar day of the enzyme pair from the 16,616-patient cohort and refit the day-7 split. The ratio row is the later hazard divided by the first-week hazard. The log ratio and log mean rows are the joint enzyme model rewritten in that form; the mean-level term is the test of whether the ratio alone is sufficient. The log-time rows are from one complete-case model (10,890 patients) in which the quartile coefficients change in proportion to log time. A likelihood-ratio test of those interactions gave P < 0.001. The piecewise-linear rows let the highest-quartile slope change at day 7. Day 7 is not established as a biological threshold. The day-3 and day-14 rows use the imputed time-varying model on the same patients. Inverse-probability weights used age, sex, SOFA, alcohol use disorder, and care unit, and were applied to all 16,616 analyzed stays; that model does not include lactate. Enzyme-bound rows keep the original quartile cutpoints. The hospital-death odds ratio uses the same covariates as the 28-day hazard model. The log AST and log ALT rows are the complete-case joint model (10,890 patients). The eICU row is the complete-case model with standard errors clustered by hospital (157 hospitals).")
     add_para(doc, "Table 6. Missing covariates by AST/ALT quartile in MIMIC-IV.")
     add_table(
         doc,
@@ -237,6 +248,23 @@ def main():
         ],
     )
     add_para(doc, "Note. Percent of the 16,616 analyzed stays. Lactate is the covariate that removes the most patients from a complete-case model, and it is missing more often in the lower quartiles. Alcohol use disorder, age, and sex had no missing values. Multiple imputation assumes that, given the variables in the imputation model, the missing values do not depend on the unobserved number.")
+    add_para(doc, "Table 7. Standardized mean differences before and after inverse-probability weighting.")
+    add_table(
+        doc,
+        ["Variable", "Unweighted SMD", "Weighted SMD"],
+        [
+            ["Age", "-0.08", "-0.02"],
+            ["Male", "-0.01", "-0.01"],
+            ["SOFA", "0.51", "0.26"],
+            ["Alcohol use disorder", "0.12", "0.06"],
+            ["Medical ICU", "0.23", "0.12"],
+            ["Coronary care unit", "0.19", "0.10"],
+            ["Surgical or trauma ICU", "0.12", "0.05"],
+            ["Cardiac surgical ICU", "-0.55", "-0.24"],
+            ["Other unit", "-0.03", "-0.02"],
+        ],
+    )
+    add_para(doc, "Note. The comparison is between the 16,616 analyzed stays and eligible stays with no valid enzyme pair. Weights are stabilized and truncated at the 1st and 99th percentiles. Median weight 0.88 (interquartile range 0.73-1.07); truncated range 0.55-3.97; effective sample size 12,993. A positive value means a higher mean among patients with a valid pair. SOFA was complete in both groups.")
     doc.save(OUT)
     text = "\n".join(p.text for p in doc.paragraphs)
     print("paras", len(doc.paragraphs), "tables", len(doc.tables), "pics", len(doc.inline_shapes))

@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Pre-submission checks: landmark, time cuts, hospital death, selection, missingness.
 
 Writes analysis/deritis_paper/revision_results.json and supplementary tables.
 The quartile cutpoints stay frozen.
 """
 
-from __future__ import annotations
 
 import json
 from pathlib import Path
